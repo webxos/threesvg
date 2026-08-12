@@ -1,0 +1,209 @@
+<svg viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" style="background-color: #000000; width: 100%; height: 100%; display: block; margin: auto;">
+    <defs>
+        <!-- Strict 1-Bit Bayer Dither Filter for Gradients/Atmosphere -->
+        <filter id="bayerDither" x="0" y="0" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.5" numOctaves="1" result="noise" seed="5"/>
+            <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  10 0 0 0 -5" result="threshold"/>
+            <feComposite in="SourceGraphic" in2="threshold" operator="in"/>
+        </filter>
+
+        <filter id="bayerSky" x="0" y="0" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="3" result="noise" seed="1">
+                <animate attributeName="baseFrequency" values="0.015; 0.025; 0.015" dur="20s" repeatCount="indefinite"/>
+            </feTurbulence>
+            <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  8 0 0 0 -3.5" result="threshold"/>
+            <feComposite in="SourceGraphic" in2="threshold" operator="in"/>
+        </filter>
+
+        <!-- CRT Scanline Overlay Pattern -->
+        <pattern id="scanlines" width="2" height="4" patternUnits="userSpaceOnUse">
+            <rect width="2" height="2" y="0" fill="#000000"/>
+            <!-- The other 2px are transparent, allowing the background to show through -->
+        </pattern>
+
+        <!-- 1-Bit Vector Textures for Canyon Walls -->
+        <pattern id="rockWall1" width="40" height="40" patternUnits="userSpaceOnUse">
+            <rect width="40" height="40" fill="#000000"/>
+            <!-- Cross Hatch -->
+            <line x1="0" y1="40" x2="40" y2="0" stroke="#FFFFFF" stroke-width="2"/>
+            <line x1="10" y1="40" x2="40" y2="10" stroke="#FFFFFF" stroke-width="2"/>
+            <line x1="20" y1="40" x2="40" y2="20" stroke="#FFFFFF" stroke-width="2"/>
+            <line x1="0" y1="30" x2="30" y2="0" stroke="#FFFFFF" stroke-width="2"/>
+            <line x1="0" y1="20" x2="20" y2="0" stroke="#FFFFFF" stroke-width="2"/>
+            <line x1="0" y1="10" x2="10" y2="0" stroke="#FFFFFF" stroke-width="2"/>
+            <!-- Stippling -->
+            <rect x="5" y="5" width="2" height="2" fill="#FFFFFF"/>
+            <rect x="25" y="15" width="2" height="2" fill="#FFFFFF"/>
+            <rect x="15" y="25" width="2" height="2" fill="#FFFFFF"/>
+            <rect x="35" y="35" width="2" height="2" fill="#FFFFFF"/>
+        </pattern>
+
+        <pattern id="rockWall2" width="30" height="30" patternUnits="userSpaceOnUse">
+            <rect width="30" height="30" fill="#000000"/>
+            <path d="M0,15 L15,0 M15,30 L30,15 M0,0 L5,5 M25,25 L30,30" stroke="#FFFFFF" stroke-width="2"/>
+            <circle cx="10" cy="10" r="1.5" fill="#FFFFFF"/>
+            <circle cx="20" cy="20" r="1.5" fill="#FFFFFF"/>
+        </pattern>
+
+        <!-- Procedural Canyon Chunks -->
+        <g id="chunkA">
+            <path d="M -2000,-2000 L -100,-300 L -60,-150 L -120,0 L -80,150 L -150,300 L -2000,2000 Z" fill="url(#rockWall1)"/>
+            <path d="M 2000,-2000 L 100,-300 L 60,-150 L 120,0 L 80,150 L 150,300 L 2000,2000 Z" fill="url(#rockWall2)"/>
+            <path d="M -20,-300 Q 20,-100 -20,100 Q 20,300 -20,500 L 0,500 L 0,-500 Z" fill="#FFFFFF"/>
+        </g>
+
+        <g id="chunkB">
+            <path d="M -2000,-2000 L -80,-300 L -40,-150 L -60,0 L -30,150 L -50,300 L -2000,2000 Z" fill="url(#rockWall2)"/>
+            <path d="M 2000,-2000 L 80,-300 L 40,-150 L 60,0 L 30,150 L 50,300 L 2000,2000 Z" fill="url(#rockWall1)"/>
+            <!-- Architectural Archway -->
+            <path d="M -150,-100 Q 0,-250 150,-100 Q 0,-150 -150,-100 Z" fill="#000000" stroke="#FFFFFF" stroke-width="4"/>
+            <polygon points="-20,-100 -10,-40 0,-100" fill="#FFFFFF"/>
+            <polygon points="20,-100 10,-40 0,-100" fill="#FFFFFF"/>
+        </g>
+
+        <g id="chunkC">
+            <path d="M -2000,-2000 L -300,-300 L -200,-150 L -250,0 L -150,150 L -200,300 L -2000,2000 Z" fill="url(#rockWall1)"/>
+            <path d="M 2000,-2000 L 300,-300 L 200,-150 L 250,0 L 150,150 L 200,300 L 2000,2000 Z" fill="url(#rockWall2)"/>
+            <!-- Hidden Temple -->
+            <g transform="translate(0, 100) scale(0.6)">
+                <rect x="-50" y="-50" width="100" height="50" fill="#000000" stroke="#FFFFFF" stroke-width="4"/>
+                <polygon points="-60,-50 60,-50 0,-120" fill="#000000" stroke="#FFFFFF" stroke-width="4"/>
+                <rect x="-40" y="-50" width="10" height="50" fill="#FFFFFF"/>
+                <rect x="-15" y="-50" width="10" height="50" fill="#FFFFFF"/>
+                <rect x="10" y="-50" width="10" height="50" fill="#FFFFFF"/>
+                <rect x="35" y="-50" width="10" height="50" fill="#FFFFFF"/>
+                <rect x="-10" y="-30" width="20" height="30" fill="#000000"/>
+            </g>
+            <path d="M -50,-300 Q 100,-150 -50,-50 Q 100,100 20,300 L 20,500 L -50,-500 Z" fill="#FFFFFF"/>
+        </g>
+
+        <g id="chunkD">
+            <path d="M -2000,-2000 L -120,-300 L -80,-150 L -100,0 L -60,150 L -120,300 L -2000,2000 Z" fill="url(#rockWall2)"/>
+            <path d="M 2000,-2000 L 120,-300 L 80,-150 L 100,0 L 60,150 L 120,300 L 2000,2000 Z" fill="url(#rockWall1)"/>
+            <!-- Floating Rocks -->
+            <circle cx="-250" cy="-100" r="20" fill="#000000" stroke="#FFFFFF" stroke-width="2"/>
+            <circle cx="300" cy="100" r="30" fill="#000000" stroke="#FFFFFF" stroke-width="2"/>
+            <path d="M -10,-300 Q 10,-100 -10,100 Q 10,300 -10,500 L 10,500 L 10,-500 Z" fill="#FFFFFF"/>
+        </g>
+
+        <!-- 1-Bit Dithered Gradient for Depth Fog -->
+        <linearGradient id="fogGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#000000" stop-opacity="0"/>
+            <stop offset="100%" stop-color="#000000" stop-opacity="1"/>
+        </linearGradient>
+    </defs>
+
+    <!-- Base Void -->
+    <rect width="1920" height="1080" fill="#000000"/>
+
+    <!-- Dithered Atmospheric Sky -->
+    <rect width="1920" height="1080" fill="#FFFFFF" filter="url(#bayerSky)"/>
+
+    <!-- Distant Background Mountains -->
+    <g transform="translate(960, 400)">
+        <g>
+            <animateTransform attributeName="transform" type="translate" values="-50, 0; 50, 0; -50, 0" dur="24s" repeatCount="indefinite"/>
+            <polygon points="-1500,0 -1200,-150 -900,-50 -600,-200 -300,-100 0,-250 300,-100 600,-200 900,-50 1200,-150 1500,0" fill="#000000"/>
+        </g>
+    </g>
+
+    <!-- Infinite Procedural Canyon System -->
+    <!-- Parent group handles Yaw/Pitch by shifting the vanishing point -->
+    <g transform="translate(960, 400)">
+        <animateTransform attributeName="transform" type="translate" values="960, 400; 1060, 350; 860, 450; 960, 400" dur="12s" repeatCount="indefinite"/>
+        
+        <!-- Chunk 1 -->
+        <use href="#chunkA">
+            <animateTransform attributeName="transform" type="scale" values="0.1; 4.0" dur="6s" begin="0s" repeatCount="indefinite"/>
+        </use>
+        <!-- Chunk 2 -->
+        <use href="#chunkB">
+            <animateTransform attributeName="transform" type="scale" values="0.1; 4.0" dur="6s" begin="1.5s" repeatCount="indefinite"/>
+        </use>
+        <!-- Chunk 3 -->
+        <use href="#chunkC">
+            <animateTransform attributeName="transform" type="scale" values="0.1; 4.0" dur="6s" begin="3s" repeatCount="indefinite"/>
+        </use>
+        <!-- Chunk 4 -->
+        <use href="#chunkD">
+            <animateTransform attributeName="transform" type="scale" values="0.1; 4.0" dur="6s" begin="4.5s" repeatCount="indefinite"/>
+        </use>
+    </g>
+
+    <!-- Foreground Depth Fog (Dithered) -->
+    <rect x="0" y="600" width="1920" height="480" fill="url(#fogGrad)" filter="url(#bayerDither)" pointer-events="none"/>
+
+    <!-- The Winged Silhouette (Player) -->
+    <g transform="translate(960, 800)">
+        <g>
+            <!-- Banking Animation based on Camera Yaw -->
+            <animateTransform attributeName="transform" type="rotate" values="-15; 15; -15" dur="12s" repeatCount="indefinite"/>
+            
+            <!-- Body -->
+            <path d="M 0,-20 C 10,0 10,20 0,40 C -10,20 -10,0 0,-20 Z" fill="#000000"/>
+            <!-- Head -->
+            <circle cx="0" cy="-25" r="8" fill="#000000"/>
+            <polygon points="0,-25 -5,-35 0,-40" fill="#000000"/>
+            
+            <!-- Left Wing (Flapping) -->
+            <path fill="#000000">
+                <animate attributeName="d" 
+                    values="M 0,0 C -40,-10 -100,10 -160,-20 C -100,20 -40,30 0,10 Z;
+                            M 0,0 C -40,-40 -100,-30 -160,-60 C -100,-20 -40,0 0,10 Z;
+                            M 0,0 C -40,-10 -100,10 -160,-20 C -100,20 -40,30 0,10 Z" 
+                    dur="0.8s" repeatCount="indefinite"/>
+            </path>
+            
+            <!-- Right Wing (Flapping, Mirrored) -->
+            <path fill="#000000" transform="scale(-1, 1)">
+                <animate attributeName="d" 
+                    values="M 0,0 C -40,-10 -100,10 -160,-20 C -100,20 -40,30 0,10 Z;
+                            M 0,0 C -40,-40 -100,-30 -160,-60 C -100,-20 -40,0 0,10 Z;
+                            M 0,0 C -40,-10 -100,10 -160,-20 C -100,20 -40,30 0,10 Z" 
+                    dur="0.8s" repeatCount="indefinite"/>
+            </path>
+            
+            <!-- Tail -->
+            <polygon points="0,40 -10,60 10,60" fill="#000000"/>
+        </g>
+    </g>
+
+    <!-- 1-Bit CRT Scanline Overlay -->
+    <rect width="1920" height="1080" fill="url(#scanlines)" pointer-events="none"/>
+
+    <!-- HUD and Typography -->
+    <g font-family="Courier New, monospace" fill="#FFFFFF">
+        <!-- Title -->
+        <text x="80" y="80" font-size="36" font-weight="bold">
+            1-BIT FLIGHT
+            <!-- Glitch Jitter -->
+            <animate attributeName="x" values="80; 82; 80; 78; 80" dur="0.2s" repeatCount="indefinite"/>
+        </text>
+        <text x="80" y="110" font-size="18" letter-spacing="4">// VOID CANYON</text>
+        
+        <!-- Reticle -->
+        <g fill="none" stroke="#FFFFFF" stroke-width="2">
+            <circle cx="960" cy="400" r="15"/>
+            <line x1="930" y1="400" x2="945" y2="400"/>
+            <line x1="975" y1="400" x2="990" y2="400"/>
+            <line x1="960" y1="370" x2="960" y2="385"/>
+            <line x1="960" y1="415" x2="960" y2="430"/>
+            <!-- Reticle Pulse -->
+            <animate attributeName="opacity" values="1; 0.5; 1" dur="2s" repeatCount="indefinite"/>
+        </g>
+        
+        <!-- Telemetry -->
+        <text x="1650" y="900" font-size="20" letter-spacing="2">SPD: 142</text>
+        <text x="1650" y="930" font-size="20" letter-spacing="2">ALT: 0850m</text>
+        <text x="1650" y="960" font-size="20" letter-spacing="2">
+            HDG: 045
+            <animate attributeName="opacity" values="1; 1; 0; 1" dur="3s" repeatCount="indefinite"/>
+        </text>
+        
+        <!-- Warning System -->
+        <text x="80" y="1000" font-size="16" fill="#FFFFFF" letter-spacing="2">
+            TERRAIN AHEAD
+            <animate attributeName="opacity" values="1; 0; 1" dur="1s" repeatCount="indefinite"/>
+        </text>
+    </g>
+</svg>
