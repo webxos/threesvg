@@ -1,0 +1,310 @@
+<svg viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" style="background-color: #000000; width: 100%; height: 100%; display: block; margin: auto;">
+    <defs>
+        <!-- Strict 1-Bit Bayer Dither Filter for Gradients/Atmosphere -->
+        <filter id="bayerDither" x="0" y="0" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.5" numOctaves="1" result="noise" seed="5"/>
+            <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  10 0 0 0 -5" result="threshold"/>
+            <feComposite in="SourceGraphic" in2="threshold" operator="in"/>
+        </filter>
+
+        <filter id="bayerSky" x="0" y="0" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="3" result="noise" seed="1">
+                <animate attributeName="baseFrequency" values="0.015; 0.025; 0.015" dur="20s" repeatCount="indefinite"/>
+            </feTurbulence>
+            <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  8 0 0 0 -3.5" result="threshold"/>
+            <feComposite in="SourceGraphic" in2="threshold" operator="in"/>
+        </filter>
+
+        <!-- CRT Scanline Overlay Pattern -->
+        <pattern id="scanlines" width="2" height="4" patternUnits="userSpaceOnUse">
+            <rect width="2" height="2" y="0" fill="#000000"/>
+        </pattern>
+
+        <!-- 1-Bit Vector Textures for Da Vinci Machines -->
+        <pattern id="hatch1" width="20" height="20" patternUnits="userSpaceOnUse">
+            <rect width="20" height="20" fill="#000000"/>
+            <line x1="0" y1="20" x2="20" y2="0" stroke="#FFFFFF" stroke-width="2"/>
+            <line x1="0" y1="10" x2="10" y2="0" stroke="#FFFFFF" stroke-width="2"/>
+        </pattern>
+
+        <pattern id="hatch2" width="30" height="30" patternUnits="userSpaceOnUse">
+            <rect width="30" height="30" fill="#000000"/>
+            <line x1="0" y1="15" x2="30" y2="15" stroke="#FFFFFF" stroke-width="2"/>
+            <line x1="15" y1="0" x2="15" y2="30" stroke="#FFFFFF" stroke-width="2"/>
+            <circle cx="10" cy="10" r="1.5" fill="#FFFFFF"/>
+            <circle cx="20" cy="20" r="1.5" fill="#FFFFFF"/>
+        </pattern>
+
+        <pattern id="hatch3" width="10" height="10" patternUnits="userSpaceOnUse">
+            <rect width="10" height="10" fill="#000000"/>
+            <line x1="0" y1="0" x2="10" y2="10" stroke="#FFFFFF" stroke-width="1"/>
+        </pattern>
+
+        <!-- Procedural Da Vinci Chunks (Left to Right Scrolling Elements) -->
+        
+        <g id="chunkGear">
+            <!-- Vitruvian Gear -->
+            <circle cx="0" cy="0" r="400" fill="none" stroke="#FFFFFF" stroke-width="4"/>
+            <circle cx="0" cy="0" r="380" fill="none" stroke="#FFFFFF" stroke-width="20" stroke-dasharray="30 30"/>
+            <circle cx="0" cy="0" r="320" fill="url(#hatch1)"/>
+            <circle cx="0" cy="0" r="200" fill="#000000" stroke="#FFFFFF" stroke-width="6"/>
+            <!-- Spokes -->
+            <rect x="-20" y="-200" width="40" height="400" fill="#000000" stroke="#FFFFFF" stroke-width="4"/>
+            <rect x="-200" y="-20" width="400" height="40" fill="#000000" stroke="#FFFFFF" stroke-width="4"/>
+            <!-- Center Hub -->
+            <circle cx="0" cy="0" r="40" fill="#FFFFFF"/>
+            <circle cx="0" cy="0" r="20" fill="#000000"/>
+            <!-- Inner Text -->
+            <text x="0" y="250" font-family="Times New Roman" font-size="40" fill="#FFFFFF" text-anchor="middle" font-style="italic">Machina</text>
+        </g>
+
+        <g id="chunkArch">
+            <!-- Architectural Ruin -->
+            <rect x="-200" y="-400" width="400" height="600" fill="url(#hatch2)" stroke="#FFFFFF" stroke-width="4"/>
+            <path d="M -200,-400 Q 0,-600 200,-400 Z" fill="#000000" stroke="#FFFFFF" stroke-width="4"/>
+            <rect x="-80" y="-100" width="160" height="300" fill="#000000"/>
+            <rect x="-80" y="-100" width="160" height="20" fill="#FFFFFF"/>
+            <!-- Pillars -->
+            <rect x="-180" y="-400" width="40" height="600" fill="#000000" stroke="#FFFFFF" stroke-width="2"/>
+            <rect x="140" y="-400" width="40" height="600" fill="#000000" stroke="#FFFFFF" stroke-width="2"/>
+            <!-- Anatomy sketch overlay -->
+            <circle cx="0" cy="-300" r="40" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+            <path d="M -60,-260 L 60,-260 L 0,-100 Z" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+        </g>
+
+        <g id="chunkWing">
+            <!-- Ornithopter Wing -->
+            <path d="M 0,0 L 400,-200 L 450,-150 L 50,50 Z" fill="url(#hatch1)" stroke="#FFFFFF" stroke-width="4"/>
+            <path d="M 0,0 L -400,-200 L -450,-150 L -50,50 Z" fill="url(#hatch1)" stroke="#FFFFFF" stroke-width="4"/>
+            <circle cx="0" cy="0" r="30" fill="#FFFFFF"/>
+            <line x1="0" y1="0" x2="0" y2="300" stroke="#FFFFFF" stroke-width="8"/>
+            <line x1="0" y1="150" x2="100" y2="250" stroke="#FFFFFF" stroke-width="4"/>
+            <line x1="0" y1="150" x2="-100" y2="250" stroke="#FFFFFF" stroke-width="4"/>
+        </g>
+
+        <g id="chunkAnatomy">
+            <!-- Giant Anatomical Leg Sketch -->
+            <path d="M 0,-200 C 50,-100 100,0 50,200 C 0,250 -50,200 -100,0 C -50,-100 0,-200 Z" fill="url(#hatch3)" stroke="#FFFFFF" stroke-width="4"/>
+            <circle cx="0" cy="0" r="40" fill="#000000" stroke="#FFFFFF" stroke-width="4"/>
+            <!-- Muscle attachments -->
+            <path d="M -50,100 L 50,100 M -40,150 L 40,150 M -30,200 L 30,200" stroke="#FFFFFF" stroke-width="2"/>
+            <text x="0" y="-250" font-family="Times New Roman" font-size="24" fill="#FFFFFF" text-anchor="middle" font-style="italic">Musculus</text>
+        </g>
+
+        <!-- 1-Bit Dithered Gradient for Depth Fog -->
+        <linearGradient id="fogGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#000000" stop-opacity="0"/>
+            <stop offset="100%" stop-color="#000000" stop-opacity="1"/>
+        </linearGradient>
+        
+        <radialGradient id="vignette">
+            <stop offset="50%" stop-color="#000000" stop-opacity="0"/>
+            <stop offset="100%" stop-color="#000000" stop-opacity="1"/>
+        </radialGradient>
+    </defs>
+
+    <!-- Base Void -->
+    <rect width="1920" height="1080" fill="#000000"/>
+
+    <!-- Dithered Atmospheric Sky -->
+    <rect width="1920" height="1080" fill="#FFFFFF" filter="url(#bayerSky)"/>
+
+    <!-- Illusion Layer (Scaling Moiré Vitruvian Circles) -->
+    <g transform="translate(960, 540)" opacity="0.15">
+        <g>
+            <animateTransform attributeName="transform" type="scale" values="1; 1.2; 1" dur="8s" repeatCount="indefinite"/>
+            <circle cx="0" cy="0" r="100" fill="none" stroke="#FFFFFF" stroke-width="4"/>
+            <circle cx="0" cy="0" r="200" fill="none" stroke="#FFFFFF" stroke-width="4"/>
+            <circle cx="0" cy="0" r="300" fill="none" stroke="#FFFFFF" stroke-width="4"/>
+            <circle cx="0" cy="0" r="400" fill="none" stroke="#FFFFFF" stroke-width="4"/>
+            <circle cx="0" cy="0" r="500" fill="none" stroke="#FFFFFF" stroke-width="4"/>
+            <circle cx="0" cy="0" r="600" fill="none" stroke="#FFFFFF" stroke-width="4"/>
+            <circle cx="0" cy="0" r="700" fill="none" stroke="#FFFFFF" stroke-width="4"/>
+        </g>
+    </g>
+
+    <!-- Infinite Procedural Side-Scroller System (Background) -->
+    <g opacity="0.5">
+        <g>
+            <animateTransform attributeName="transform" type="translate" values="2200, 400; -800, 400" dur="20s" repeatCount="indefinite"/>
+            <use href="#chunkGear"/>
+        </g>
+        <g>
+            <animateTransform attributeName="transform" type="translate" values="2200, 500; -800, 500" dur="20s" begin="-5s" repeatCount="indefinite"/>
+            <use href="#chunkArch"/>
+        </g>
+        <g>
+            <animateTransform attributeName="transform" type="translate" values="2200, 300; -800, 300" dur="20s" begin="-10s" repeatCount="indefinite"/>
+            <use href="#chunkWing"/>
+        </g>
+        <g>
+            <animateTransform attributeName="transform" type="translate" values="2200, 600; -800, 600" dur="20s" begin="-15s" repeatCount="indefinite"/>
+            <use href="#chunkAnatomy"/>
+        </g>
+    </g>
+
+    <!-- Midground Scroller -->
+    <g opacity="0.8">
+        <g transform="scale(0.7)">
+            <g>
+                <animateTransform attributeName="transform" type="translate" values="3200, 700; -800, 700" dur="12s" repeatCount="indefinite"/>
+                <use href="#chunkGear"/>
+            </g>
+        </g>
+        <g transform="scale(0.7)">
+            <g>
+                <animateTransform attributeName="transform" type="translate" values="3200, 750; -800, 750" dur="12s" begin="-4s" repeatCount="indefinite"/>
+                <use href="#chunkArch"/>
+            </g>
+        </g>
+        <g transform="scale(0.7)">
+            <g>
+                <animateTransform attributeName="transform" type="translate" values="3200, 650; -800, 650" dur="12s" begin="-8s" repeatCount="indefinite"/>
+                <use href="#chunkWing"/>
+            </g>
+        </g>
+    </g>
+
+    <!-- Ground Line & Perspective Grid -->
+    <g>
+        <!-- Moving Horizontal Lines for Speed -->
+        <g>
+            <animateTransform attributeName="transform" type="translate" values="0,0; 0,-20" dur="0.3s" repeatCount="indefinite"/>
+            <line x1="0" y1="1000" x2="1920" y2="1000" stroke="#FFFFFF" stroke-width="1" opacity="0.3"/>
+            <line x1="0" y1="1020" x2="1920" y2="1020" stroke="#FFFFFF" stroke-width="1" opacity="0.4"/>
+            <line x1="0" y1="1040" x2="1920" y2="1040" stroke="#FFFFFF" stroke-width="1" opacity="0.5"/>
+            <line x1="0" y1="1060" x2="1920" y2="1060" stroke="#FFFFFF" stroke-width="1" opacity="0.6"/>
+            <line x1="0" y1="1080" x2="1920" y2="1080" stroke="#FFFFFF" stroke-width="1" opacity="0.7"/>
+        </g>
+        <!-- Perspective Lines -->
+        <line x1="960" y1="980" x2="0" y2="1080" stroke="#FFFFFF" stroke-width="2" opacity="0.5"/>
+        <line x1="960" y1="980" x2="320" y2="1080" stroke="#FFFFFF" stroke-width="2" opacity="0.5"/>
+        <line x1="960" y1="980" x2="640" y2="1080" stroke="#FFFFFF" stroke-width="2" opacity="0.5"/>
+        <line x1="960" y1="980" x2="960" y2="1080" stroke="#FFFFFF" stroke-width="2" opacity="0.5"/>
+        <line x1="960" y1="980" x2="1280" y2="1080" stroke="#FFFFFF" stroke-width="2" opacity="0.5"/>
+        <line x1="960" y1="980" x2="1600" y2="1080" stroke="#FFFFFF" stroke-width="2" opacity="0.5"/>
+        <line x1="960" y1="980" x2="1920" y2="1080" stroke="#FFFFFF" stroke-width="2" opacity="0.5"/>
+        
+        <!-- Solid Ground Anchor -->
+        <rect x="0" y="980" width="1920" height="100" fill="#000000"/>
+        <line x1="0" y1="985" x2="1920" y2="985" stroke="#FFFFFF" stroke-width="4"/>
+        <line x1="0" y1="985" x2="1920" y2="985" stroke="#000000" stroke-width="10" stroke-dasharray="20 40">
+            <animateTransform attributeName="transform" type="translate" values="0,0; -60,0" dur="0.3s" repeatCount="indefinite"/>
+        </line>
+    </g>
+
+    <!-- The Da Vinci Runner (Centered, Bold Black Line Work) -->
+    <g id="runner" transform="translate(960, 760)">
+        <!-- Background Vitruvian Proportions -->
+        <circle cx="0" cy="0" r="250" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-dasharray="10 10" opacity="0.4">
+            <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="20s" repeatCount="indefinite"/>
+        </circle>
+        <rect x="-200" y="-200" width="400" height="400" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-dasharray="10 10" opacity="0.4"/>
+        
+        <!-- Head -->
+        <circle cx="-10" cy="-140" r="20" fill="#000000" stroke="#FFFFFF" stroke-width="2"/>
+        
+        <!-- Torso (Forward Lean) -->
+        <path d="M -20,-120 L 30,-40 L 10,40 L -30,20 Z" fill="#000000" stroke="#FFFFFF" stroke-width="2"/>
+        <path d="M -15,-110 L 20,-40 L 5,30 L -25,10 Z" fill="url(#hatch3)"/>
+
+        <!-- Front Leg (Animating) -->
+        <path fill="#000000" stroke="#FFFFFF" stroke-width="2">
+            <animate attributeName="d" 
+                values="M 10,40 L 60,100 L 100,160 L 140,200 L 140,220 L 100,220 L 60,160 L 10,100 Z;
+                        M 10,40 L 40,80 L 20,140 L 0,200 L 0,220 L 40,220 L 60,160 L 30,80 Z;
+                        M 10,40 L 60,100 L 100,160 L 140,200 L 140,220 L 100,220 L 60,160 L 10,100 Z" 
+                dur="0.4s" repeatCount="indefinite"/>
+        </path>
+        
+        <!-- Back Leg (Animating) -->
+        <path fill="url(#hatch3)" stroke="#FFFFFF" stroke-width="2">
+            <animate attributeName="d" 
+                values="M -30,20 L -60,80 L -30,140 L 0,200 L 0,220 L -40,220 L -60,160 L -40,60 Z;
+                        M -30,20 L -70,100 L -110,160 L -150,200 L -150,220 L -110,220 L -70,160 L -40,100 Z;
+                        M -30,20 L -60,80 L -30,140 L 0,200 L 0,220 L -40,220 L -60,160 L -40,60 Z" 
+                dur="0.4s" repeatCount="indefinite"/>
+        </path>
+
+        <!-- Front Arm (Animating) -->
+        <path fill="#000000" stroke="#FFFFFF" stroke-width="2">
+            <animate attributeName="d"
+                values="M 20,-100 L 70,-60 L 110,-30 L 100,-10 L 60,-30 L 10,-60 Z;
+                        M 20,-100 L 80,-120 L 120,-140 L 110,-120 L 70,-100 L 10,-60 Z;
+                        M 20,-100 L 70,-60 L 110,-30 L 100,-10 L 60,-30 L 10,-60 Z"
+                dur="0.4s" repeatCount="indefinite"/>
+        </path>
+
+        <!-- Back Arm (Animating) -->
+        <path fill="url(#hatch3)" stroke="#FFFFFF" stroke-width="2">
+            <animate attributeName="d"
+                values="M -10,-100 L -70,-120 L -110,-140 L -100,-120 L -60,-100 L -10,-60 Z;
+                        M -10,-100 L -60,-60 L -100,-30 L -90,-10 L -50,-30 L 0,-60 Z;
+                        M -10,-100 L -70,-120 L -110,-140 L -100,-120 L -60,-100 L -10,-60 Z"
+                dur="0.4s" repeatCount="indefinite"/>
+        </path>
+        
+        <!-- Drop Shadow -->
+        <ellipse cx="0" cy="220" rx="100" ry="20" fill="#000000" filter="url(#bayerDither)" opacity="0.8"/>
+    </g>
+
+    <!-- Foreground Scroller (Super Fast, Scales over screen) -->
+    <g>
+        <g transform="scale(1.5)">
+            <g>
+                <animateTransform attributeName="transform" type="translate" values="1500, 600; -500, 600" dur="4s" repeatCount="indefinite"/>
+                <use href="#chunkAnatomy"/>
+            </g>
+        </g>
+        <g transform="scale(1.2)">
+            <g>
+                <animateTransform attributeName="transform" type="translate" values="1800, 850; -500, 850" dur="3s" begin="-1.5s" repeatCount="indefinite"/>
+                <use href="#chunkWing"/>
+            </g>
+        </g>
+    </g>
+
+    <!-- Foreground Depth Fog (Dithered) -->
+    <rect width="1920" height="1080" fill="url(#vignette)" filter="url(#bayerDither)" pointer-events="none"/>
+
+    <!-- 1-Bit CRT Scanline Overlay -->
+    <rect width="1920" height="1080" fill="url(#scanlines)" pointer-events="none"/>
+
+    <!-- HUD and Typography -->
+    <g font-family="Courier New, monospace" fill="#FFFFFF">
+        <!-- Title -->
+        <text x="80" y="80" font-size="36" font-weight="bold">
+            CODEX ATLANTICUS
+            &lt;animate attributeName="x" values="80; 82; 80; 78; 80" dur="0.2s" repeatCount="indefinite"/&gt;
+        </text>
+        <text x="80" y="110" font-size="18" letter-spacing="4">// MOTUS PERPETUUS</text>
+        
+        <!-- Telemetry -->
+        <text x="1650" y="900" font-size="20" letter-spacing="2">VEL: 142</text>
+        <text x="1650" y="930" font-size="20" letter-spacing="2">IMPETUS: MAX</text>
+        <text x="1650" y="960" font-size="20" letter-spacing="2">
+            GRAV: 09.8
+            &lt;animate attributeName="opacity" values="1; 1; 0; 1" dur="3s" repeatCount="indefinite"/&gt;
+        </text>
+        
+        <!-- Warning System -->
+        <text x="80" y="1000" font-size="16" fill="#FFFFFF" letter-spacing="2">
+            ANATOMIA DEL MOTO
+            &lt;animate attributeName="opacity" values="1; 0; 1" dur="1s" repeatCount="indefinite"/&gt;
+        </text>
+        
+        <!-- Targeting brackets on the runner -->
+        <g fill="none" stroke="#FFFFFF" stroke-width="2" transform="translate(960, 760)">
+            <path d="M -180,-220 L -200,-220 L -200,-200 M 180,-220 L 200,-220 L 200,-200 M -180,220 L -200,220 L -200,200 M 180,220 L 200,220 L 200,200"/>
+            <animate attributeName="opacity" values="1; 0.5; 1" dur="2s" repeatCount="indefinite"/>
+        </g>
+        
+        <!-- Vertical Text (Mirrored Da Vinci Style) -->
+        <text x="1600" y="500" font-family="Times New Roman" font-style="italic" fill="#FFFFFF" font-size="20" opacity="0.4" transform="rotate(-90, 1600, 500)">
+            Studio per la proporzioni del corpo umano
+        </text>
+        <text x="300" y="400" font-family="Times New Roman" font-style="italic" fill="#FFFFFF" font-size="20" opacity="0.4" transform="rotate(90, 300, 400)">
+            Macchine per il volo e il moto perpetuo
+        </text>
+    </g>
+</svg>
