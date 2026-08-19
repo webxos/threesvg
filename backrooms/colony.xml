@@ -1,0 +1,636 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- COLONY: INFINITE BACKROOMS - MAGIC UNIVERSE EDITION (PAINTER'S ALGORITHM) -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="100%" height="100%" id="root" style="background:#ffffff;">
+  <style>
+    .wf { stroke: #000000; stroke-width: 1.25; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+    text { fill: #000000; font-family: "Courier New", monospace; pointer-events: none; }
+    #fsBtn { pointer-events: auto; cursor: pointer; }
+  </style>
+
+  <!-- 3D Polygon Canvas -->
+  <g id="scene"></g>
+
+  <!-- HUD Overlay -->
+  <g id="hud">
+    <text x="20" y="30" font-size="14">COLONY SVG: INFINITE BACKROOMS in one .svg file by webXOS 2026</text>
+    <text x="20" y="48" font-size="12">VM_STATE: PAINTER_ALGORITHM_ACTIVE</text>
+    <text x="20" y="690" font-size="12" id="logVal">SECTOR 0x0000: INITIALIZING...</text>
+    <text x="1260" y="690" text-anchor="end" font-size="12" id="coordVal">LOC: X_0.0 Y_0.0 Z_0.0</text>
+    
+    <!-- Fullscreen Button -->
+    <g id="fsBtn" transform="translate(1240, 20)">
+      <rect x="0" y="0" width="20" height="20" fill="#fff" stroke="#000" stroke-width="1.25"/>
+      <path d="M2,8 L2,2 L8,2 M18,12 L18,18 L12,18 M2,12 L2,18 L8,18 M18,8 L18,2 L12,2" fill="none" stroke="#000" stroke-width="1.5"/>
+    </g>
+  </g>
+
+  <!-- Start Overlay -->
+  <g id="menu">
+    <rect x="0" y="0" width="1280" height="720" fill="#fff" style="cursor:pointer;" onclick="startSim()"/>
+    <text x="640" y="350" text-anchor="middle" font-size="24">CLICK TO INITIALIZE</text>
+    <text x="640" y="380" text-anchor="middle" font-size="14">MAGIC UNIVERSE TURING MACHINE READY</text>
+  </g>
+
+  <script type="text/ecmascript"><![CDATA[
+    // ═══════════════════════════════════════════════════════════════════
+    // VIRTUAL MACHINE & STATE REGISTERS
+    // ═══════════════════════════════════════════════════════════════════
+    const VM = {
+      PC: 0, RNG: 1337,
+      step: function() {
+        this.PC++; this.RNG = (this.RNG * 9301 + 49297) % 233280;
+        return Math.floor(this.RNG / 233280 * 12); // 12 Room Types
+      }
+    };
+
+    const svgNS = "http://www.w3.org/2000/svg";
+    const scene = document.getElementById("scene");
+    const W = 1280, H = 720, FOV = 800, NEAR = 0.1;
+
+    const cam = { x: 0, y: 1.8, z: 0, yaw: 0, pitch: 0 };
+    let worldBoxes = [];
+    let waypoints = [];
+    let doors = [];
+    let currentWaypoint = 0;
+    let genState = { x: 0, y: 0, z: 0, yaw: 0 };
+    let genId = 0;
+    let isRunning = false, lastTime = 0;
+    let waitTimer = 0;
+    let msgTimer = 0;
+
+    // --- AUDIO ---
+    let audioCtx = null, humOsc = null;
+    function ensureAudio() {
+      if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {} }
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+      if (audioCtx && !humOsc) {
+        humOsc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+        humOsc.type = 'sine'; humOsc.frequency.value = 60; gain.gain.value = 0.02;
+        humOsc.connect(gain); gain.connect(audioCtx.destination); humOsc.start();
+      }
+    }
+    function playSound(freq, dur, type = 'sine', vol = 0.05, freqEnd = null) {
+      if (!audioCtx) return;
+      try {
+        const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+        osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        if (freqEnd) osc.frequency.exponentialRampToValueAtTime(Math.max(1, freqEnd), audioCtx.currentTime + dur);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+        osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + dur);
+      } catch(e) {}
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // PAINTER'S ALGORITHM RENDERER (SOLID FACES WITH MINIMAL COLORS)
+    // ═══════════════════════════════════════════════════════════════════
+    let polyPool = [], polyIndex = 0;
+    for (let i = 0; i < 8000; i++) {
+      const p = document.createElementNS(svgNS, "polygon");
+      p.setAttribute("class", "wf");
+      p.style.display = "none";
+      scene.appendChild(p); polyPool.push(p);
+    }
+    function getPoly() {
+      if (polyIndex >= polyPool.length) polyIndex = 0;
+      const p = polyPool[polyIndex++]; p.style.display = ''; return p;
+    }
+
+    function rotateVec(v) {
+      const cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw);
+      const rx = v.x * cy - v.z * sy, rz = v.x * sy + v.z * cy;
+      const cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+      return { x: rx, y: v.y * cp - rz * sp, z: v.y * sp + rz * cp };
+    }
+    function project(v) { return rotateVec({ x: v.x - cam.x, y: v.y - cam.y, z: v.z - cam.z }); }
+    function toScreen(p) { const s = FOV / Math.max(NEAR, p.z); return { x: W / 2 + p.x * s, y: H / 2 - p.y * s }; }
+
+    function clipNear(poly) {
+      const out = [];
+      for (let i = 0; i < poly.length; i++) {
+        const c = poly[i], n = poly[(i + 1) % poly.length];
+        const cb = c.z <= NEAR, nb = n.z <= NEAR;
+        if (!cb) out.push(c);
+        if (cb !== nb) {
+          const delta = n.z - c.z; if (Math.abs(delta) < 0.00001) continue;
+          const t = (NEAR - c.z) / delta;
+          out.push({ x: c.x + (n.x - c.x) * t, y: c.y + (n.y - c.y) * t, z: NEAR });
+        }
+      }
+      return out;
+    }
+
+    function addBox(x, y, z, w, h, d, yaw = 0, fill = "#ffffff", stroke = "#000000") {
+      const cy = Math.cos(yaw), sy = Math.sin(yaw);
+      const c = [
+        [-w/2,-h/2,-d/2], [w/2,-h/2,-d/2], [w/2,h/2,-d/2], [-w/2,h/2,-d/2],
+        [-w/2,-h/2,d/2], [w/2,-h/2,d/2], [w/2,h/2,d/2], [-w/2,h/2,d/2]
+      ].map(v => [x + (v[0]*cy - v[2]*sy), y + v[1], z + (v[0]*sy + v[2]*cy)]);
+      const f = [
+        { i:[0,3,2,1], n:[0,0,-1] }, { i:[4,5,6,7], n:[0,0,1] },
+        { i:[0,4,7,3], n:[-1,0,0] }, { i:[1,2,6,5], n:[1,0,0] },
+        { i:[3,7,6,2], n:[0,1,0] }, { i:[0,1,5,4], n:[0,-1,0] }
+      ];
+      f.forEach(face => face.n = [face.n[0]*cy - face.n[2]*sy, face.n[1], face.n[0]*sy + face.n[2]*cy]);
+      return { v: c, f: f, fill: fill, stroke: stroke };
+    }
+
+    function processBox(queue, box) {
+      box.f.forEach(f => {
+        const camV = f.i.map(i => project({ x: box.v[i][0], y: box.v[i][1], z: box.v[i][2] }));
+        const camN = rotateVec({ x: f.n[0], y: f.n[1], z: f.n[2] });
+        let cx=0, cy=0, cz=0; for (const p of camV) { cx += p.x; cy += p.y; cz += p.z; } cx/=4; cy/=4; cz/=4;
+        if (cx*camN.x + cy*camN.y + cz*camN.z >= 0) return; // Backface cull
+        const clipped = clipNear(camV); if (clipped.length < 3) return;
+        let pts = ""; for (const p of clipped) { const s = toScreen(p); pts += `${s.x.toFixed(1)},${s.y.toFixed(1)} `; }
+        queue.push({ pts, z: cz, fill: box.fill, stroke: box.stroke });
+      });
+    }
+
+    // Local Space Box Spawner (Relative to genState)
+    function spawnBox(localX, localY, localZ, w, h, d, localYaw = 0, fill = "#ffffff", stroke = "#000000") {
+      const cy = Math.cos(genState.yaw), sy = Math.sin(genState.yaw);
+      const wx = genState.x + (localX * cy - localZ * sy);
+      const wz = genState.z + (localX * sy + localZ * cy);
+      const wy = genState.y + localY;
+      const box = addBox(wx, wy, wz, w, h, d, genState.yaw + localYaw, fill, stroke);
+      box.genId = genId;
+      worldBoxes.push(box);
+      return box;
+    }
+
+    function addWaypoint(localX, localZ, y = 1.8, type = 'walk') {
+      const cy = Math.cos(genState.yaw), sy = Math.sin(genState.yaw);
+      const wx = genState.x + (localX * cy - localZ * sy);
+      const wz = genState.z + (localX * sy + localZ * cy);
+      waypoints.push({ x: wx, z: wz, genId: genId, y: genState.y + y, type: type });
+    }
+
+    function spawnDoor(localX, localZ, localY = 1.8, isElevator = false) {
+      // Door Frame
+      spawnBox(localX, localY + 1.0, localZ, 3, 0.5, 0.2, 0, "#dddddd");
+      spawnBox(localX - 1.2, localY - 0.6, localZ, 0.6, 2.4, 0.2, 0, "#dddddd");
+      spawnBox(localX + 1.2, localY - 0.6, localZ, 0.6, 2.4, 0.2, 0, "#dddddd");
+      
+      // Sliding Panels (Wider to fully contain scene)
+      let leftPanel = spawnBox(localX - 0.75, localY, localZ, 1.5, 3, 0.1, 0, "#111111");
+      let rightPanel = spawnBox(localX + 0.75, localY, localZ, 1.5, 3, 0.1, 0, "#111111");
+      
+      const cy = Math.cos(genState.yaw), sy = Math.sin(genState.yaw);
+      const wx = genState.x + (localX * cy - localZ * sy);
+      const wz = genState.z + (localX * sy + localZ * cy);
+      
+      let doorObj = {
+        left: leftPanel, right: rightPanel, state: 'closed', offset: 0,
+        x: wx, z: wz, yaw: genState.yaw, genId: genId, ignoreProximity: false
+      };
+      doors.push(doorObj);
+      
+      // Place waypoint slightly past the door to force walking through it
+      let wpType = isElevator ? 'elevator_wait' : 'walk';
+      addWaypoint(localX, localZ + 1.5, localY, wpType);
+      
+      if (isElevator) {
+        waypoints[waypoints.length - 1].door = doorObj;
+        doorObj.ignoreProximity = true;
+      }
+    }
+
+    function advanceGenState(localZ, localYaw = 0, localY = 0) {
+      const cy = Math.cos(genState.yaw), sy = Math.sin(genState.yaw);
+      genState.x += (0 * cy - localZ * sy);
+      genState.z += (0 * sy + localZ * cy);
+      genState.yaw += localYaw;
+      genState.y += localY;
+      genState.y = Math.max(0, Math.min(20, genState.y));
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // MINIMALIST OFFICE & MAGIC UNIVERSE BLUEPRINTS
+    // ═══════════════════════════════════════════════════════════════════
+    function spawnRoom(width, height, length, floorCol = "#eeeeee", ceilCol = "#ffffff", wallCol = "#f5f5f5") {
+      spawnBox(0, 0, length/2, width, 0.1, length, 0, floorCol);
+      spawnBox(0, height, length/2, width, 0.1, length, 0, ceilCol);
+      spawnBox(-width/2, height/2, length/2, 0.2, height, length, 0, wallCol);
+      spawnBox(width/2, height/2, length/2, 0.2, height, length, 0, wallCol);
+      let sideW = (width - 3) / 2;
+      if (sideW > 0) {
+        spawnBox(-3/2 - sideW/2, height/2, length, sideW, height, 0.2, 0, wallCol);
+        spawnBox(3/2 + sideW/2, height/2, length, sideW, height, 0.2, 0, wallCol);
+      }
+      spawnBox(0, height - 0.5, length, 3, 1, 0.2, 0, wallCol); // Top lintel
+      
+      let numTilesX = Math.floor(width / 2);
+      let numTilesZ = Math.floor(length / 2);
+      for(let i=0; i<numTilesZ; i++) {
+        for(let j=0; j<numTilesX; j++) {
+          let x = -width/2 + 1 + j*2;
+          let z = 1 + i*2;
+          spawnBox(x, height - 0.06, z, 1.8, 0.05, 1.8, 0, "#e0e0e0");
+        }
+      }
+      spawnBox(-width/2 + 0.1, 0.1, length/2, 0.3, 0.2, length, 0, "#cccccc");
+      spawnBox(width/2 - 0.1, 0.1, length/2, 0.3, 0.2, length, 0, "#cccccc");
+    }
+
+    function spawnFakePlant(x, z) {
+      spawnBox(x, 0.2, z, 0.4, 0.4, 0.4, 0, "#333333");
+      spawnBox(x, 0.5, z, 0.1, 0.4, 0.1, 0, "#553300");
+      spawnBox(x, 0.8, z, 0.6, 0.6, 0.6, 0, "#225522");
+      spawnBox(x - 0.1, 1.0, z - 0.1, 0.4, 0.4, 0.4, 0, "#337733");
+      spawnBox(x + 0.1, 0.9, z + 0.1, 0.4, 0.4, 0.4, 0, "#337733");
+    }
+
+    function spawnDesk(x, z) {
+      spawnBox(x, 0.75, z, 2.0, 0.05, 1.0, 0, "#dddddd");
+      spawnBox(x - 0.9, 0.4, z, 0.1, 0.8, 0.9, 0, "#cccccc");
+      spawnBox(x + 0.9, 0.4, z, 0.1, 0.8, 0.9, 0, "#cccccc");
+      spawnBox(x, 0.4, z + 0.45, 1.8, 0.8, 0.1, 0, "#cccccc");
+      spawnBox(x, 1.1, z - 0.2, 0.6, 0.4, 0.05, 0, "#000000");
+      spawnBox(x, 1.1, z - 0.18, 0.5, 0.3, 0.01, 0, "#001133");
+      spawnBox(x, 0.85, z - 0.3, 0.1, 0.2, 0.1, 0, "#222222");
+      spawnBox(x, 0.78, z + 0.1, 0.5, 0.02, 0.2, 0, "#111111");
+    }
+
+    function spawnCubicle(cx, cz) {
+      spawnBox(cx - 1.5, 0.75, cz, 0.1, 1.5, 3, 0, "#cccccc");
+      spawnBox(cx + 1.5, 0.75, cz, 0.1, 1.5, 3, 0, "#cccccc");
+      spawnBox(cx, 0.75, cz - 1.5, 3, 1.5, 0.1, 0, "#cccccc");
+      spawnDesk(cx, cz);
+      spawnFakePlant(cx + 1.0, cz - 1.0);
+    }
+
+    function generateSector() {
+      genId++;
+      let layout = VM.step();
+      
+      addWaypoint(0, 0); // Entrance waypoint
+      
+      if (layout === 0) { // Maze Hallway
+        spawnRoom(4, 3, 8, "#eeeeee", "#ffffff", "#f0f0f0");
+        spawnDoor(0, 8);
+        advanceGenState(8);
+        advanceGenState(0, Math.PI / 2);
+        spawnRoom(4, 3, 8, "#eeeeee", "#ffffff", "#f0f0f0");
+        spawnDoor(0, 8);
+        advanceGenState(8);
+        advanceGenState(0, -Math.PI / 2);
+        spawnRoom(4, 3, 8, "#eeeeee", "#ffffff", "#f0f0f0");
+        spawnDoor(0, 8);
+        advanceGenState(8);
+      } else if (layout === 1) { // Cubicle Farm
+        spawnRoom(16, 3, 16, "#dddddd", "#ffffff", "#e6e6e6");
+        for(let i=0; i<3; i++) {
+          spawnCubicle(-5, 4 + i*4);
+          spawnCubicle(5, 4 + i*4);
+        }
+        spawnDoor(0, 16);
+        advanceGenState(16);
+      } else if (layout === 2) { // Staircase Illusion
+        spawnRoom(8, 6, 12, "#cccccc", "#ffffff", "#e0e0e0");
+        for(let i=0; i<10; i++) {
+          spawnBox(0, 0.25 + i*0.35, 1 + i*1.2, 4, 0.5, 1.2, 0, "#bbbbbb");
+        }
+        spawnBox(-3, 1.0, 6, 0.1, 2.0, 2.0, 0, "#111111"); 
+        let secretDoor = spawnBox(-3.1, 1.0, 6, 0.1, 2.0, 2.0, 0, "#222222");
+        
+        const cy = Math.cos(genState.yaw), sy = Math.sin(genState.yaw);
+        const sdx = genState.x + (-3 * cy - 6 * sy);
+        const sdz = genState.z + (-3 * sy + 6 * cy);
+        doors.push({ left: secretDoor, right: {v:[]}, state: 'closed', offset: 0, x: sdx, z: sdz, yaw: genState.yaw, genId: genId, ignoreProximity: false });
+        
+        for(let i=0; i<5; i++) {
+          addWaypoint(0, 1 + i*1.2, 1.8 + i*0.35);
+        }
+        // Ascend Y to match the top of the stairs
+        spawnDoor(0, 12, 3.2);
+        advanceGenState(12);
+        genState.y += 2.0;
+      } else if (layout === 3) { // Lounge
+        spawnRoom(16, 3, 12, "#eeeeee", "#ffffff", "#f5f5f5");
+        spawnBox(-5, 0.4, 4, 4, 0.8, 2, 0, "#dddddd");
+        spawnBox(-5, 0.8, 3, 4, 1.5, 0.5, 0, "#eeeeee");
+        spawnBox(5, 0.4, 4, 4, 0.8, 2, 0, "#dddddd");
+        spawnBox(5, 0.8, 5, 4, 1.5, 0.5, 0, "#eeeeee");
+        spawnBox(0, 0.4, 6, 2, 0.8, 2, 0, "#dddddd");
+        spawnFakePlant(-7, 2);
+        spawnFakePlant(7, 2);
+        spawnFakePlant(-7, 10);
+        spawnFakePlant(7, 10);
+        spawnDoor(0, 12);
+        advanceGenState(12);
+      } else if (layout === 4) { // Elevator
+        spawnRoom(4, 3, 4, "#222222", "#333333", "#444444");
+        spawnBox(1.8, 1.5, 0, 0.1, 0.8, 0.2, 0, "#111111");
+        spawnBox(1.8, 1.7, 0, 0.05, 0.05, 0.01, 0, "#ff0000");
+        spawnDoor(0, 4, 1.8, true); // isElevator = true
+        advanceGenState(4);
+        genState.y += (Math.random() * 2.0);
+      } else if (layout === 5) { // Mall
+        spawnRoom(20, 5, 20, "#cccccc", "#ffffff", "#eeeeee");
+        for(let i=0; i<3; i++) {
+          spawnBox(-5, 1.5, 4 + i*6, 0.1, 3, 4, 0, "#aaaaaa");
+          spawnBox(-5, 1.5, 4 + i*6, 0.12, 2.8, 3.8, 0, "#999999");
+          spawnBox(-3, 2.5, 4 + i*6, 2, 0.5, 0.1, 0, "#222222"); 
+        }
+        for(let i=0; i<3; i++) {
+          spawnBox(5, 1.5, 4 + i*6, 0.1, 3, 4, 0, "#aaaaaa");
+          spawnBox(5, 1.5, 4 + i*6, 0.12, 2.8, 3.8, 0, "#999999");
+          spawnBox(3, 2.5, 4 + i*6, 2, 0.5, 0.1, 0, "#222222"); 
+        }
+        spawnBox(-2, 0.5, 2, 1, 1, 1, 0, "#333333");
+        spawnFakePlant(-2, 2);
+        spawnBox(2, 0.5, 18, 1, 1, 1, 0, "#333333");
+        spawnFakePlant(2, 18);
+        spawnDoor(0, 20);
+        advanceGenState(20);
+      } else if (layout === 6) { // Multi-Door Hallway
+        spawnRoom(6, 3, 20, "#eeeeee", "#ffffff", "#f0f0f0");
+        for(let i=0; i<4; i++) {
+          spawnBox(-3, 1.5, 4 + i*5, 0.1, 3, 2, 0, "#333333");
+          spawnBox(-3, 1.5, 4 + i*5, 0.12, 2.8, 1.8, 0, "#222222");
+        }
+        for(let i=0; i<4; i++) {
+          spawnBox(3, 1.5, 4 + i*5, 0.1, 3, 2, 0, "#333333");
+          spawnBox(3, 1.5, 4 + i*5, 0.12, 2.8, 1.8, 0, "#222222");
+        }
+        spawnDoor(0, 20);
+        advanceGenState(20);
+      } else if (layout === 7) { // Infinite Grid Pillars
+        spawnRoom(20, 6, 20, "#dddddd", "#ffffff", "#e0e0e0");
+        for(let x=-2; x<=2; x+=2) {
+          for(let z=2; z<=18; z+=4) {
+            spawnBox(x, 1.5, z, 0.5, 3, 0.5, 0, "#cccccc");
+            spawnBox(x, 3.2, z, 0.6, 0.2, 0.6, 0, "#bbbbbb");
+          }
+        }
+        spawnDoor(0, 20);
+        advanceGenState(20);
+      } else if (layout === 8) { // Escalator
+        spawnRoom(10, 5, 16, "#dddddd", "#ffffff", "#e0e0e0");
+        for(let i=0; i<12; i++) {
+          let y = 0.2 + i*0.3;
+          let z = 2 + i*1.2;
+          spawnBox(0, y, z, 4, 0.3, 1.2, 0, "#cccccc");
+        }
+        spawnBox(-2, 1.5, 8, 0.2, 3, 12, 0, "#dddddd");
+        spawnBox(2, 1.5, 8, 0.2, 3, 12, 0, "#dddddd");
+        spawnBox(0, 2.5, 16, 4, 1, 1, 0, "#333333");
+        
+        for(let i=0; i<8; i++) {
+          addWaypoint(0, 2 + i*1.2, 1.8 + i*0.3);
+        }
+        spawnDoor(0, 16, 3.9);
+        advanceGenState(16);
+        genState.y += 3.0;
+      } else if (layout === 9) { // Conference Room
+        spawnRoom(16, 3, 16, "#eeeeee", "#ffffff", "#f5f5f5");
+        spawnBox(0, 0.4, 8, 10, 0.8, 4, 0, "#dddddd");
+        for(let i=0; i<4; i++) {
+          spawnBox(-4, 0.4, 4 + i*2, 1, 0.8, 1, 0, "#cccccc");
+          spawnBox(4, 0.4, 4 + i*2, 1, 0.8, 1, 0, "#cccccc");
+          spawnBox(-4, 0.85, 4 + i*2, 0.6, 0.05, 0.4, 0, "#111111");
+          spawnBox(-4, 0.9, 4 + i*2, 0.5, 0.3, 0.01, 0, "#001133");
+          spawnBox(4, 0.85, 4 + i*2, 0.6, 0.05, 0.4, 0, "#111111");
+          spawnBox(4, 0.9, 4 + i*2, 0.5, 0.3, 0.01, 0, "#001133");
+        }
+        spawnBox(0, 2.5, 0, 8, 1.5, 0.1, 0, "#111111");
+        spawnBox(0, 2.5, 0.1, 7.8, 1.3, 0.01, 0, "#002244");
+        
+        spawnDoor(0, 16);
+        advanceGenState(16);
+      } else if (layout === 10) { // Server Room
+        spawnRoom(12, 3, 16, "#dddddd", "#ffffff", "#e0e0e0");
+        for(let i=0; i<4; i++) {
+          spawnBox(-4, 1.5, 3 + i*3, 2, 3, 1.5, 0, "#333333");
+          for(let j=0; j<4; j++) {
+            spawnBox(-3, 0.5 + j*0.6, 3 + i*3, 0.1, 0.1, 0.1, 0, "#00ff00");
+            spawnBox(-3.2, 0.5 + j*0.6, 3 + i*3, 0.1, 0.1, 0.1, 0, "#ff0000");
+          }
+          
+          spawnBox(4, 1.5, 3 + i*3, 2, 3, 1.5, 0, "#333333");
+          for(let j=0; j<4; j++) {
+            spawnBox(3, 0.5 + j*0.6, 3 + i*3, 0.1, 0.1, 0.1, 0, "#00ff00");
+            spawnBox(3.2, 0.5 + j*0.6, 3 + i*3, 0.1, 0.1, 0.1, 0, "#0000ff");
+          }
+        }
+        spawnDoor(0, 16);
+        advanceGenState(16);
+      } else if (layout === 11) { // Art Gallery
+        spawnRoom(8, 4, 16, "#ffffff", "#ffffff", "#f8f8f8");
+        for(let i=0; i<4; i++) {
+          spawnBox(-4, 2, 2 + i*4, 0.2, 2, 2, 0, "#111111");
+          spawnBox(-3.9, 2, 2 + i*4, 0.22, 1.8, 1.8, 0, "#882222");
+          spawnBox(4, 2, 2 + i*4, 0.2, 2, 2, 0, "#111111");
+          spawnBox(3.9, 2, 2 + i*4, 0.22, 1.8, 1.8, 0, "#222288");
+        }
+        spawnBox(0, 0.4, 4, 2, 0.2, 0.8, 0, "#333333");
+        spawnBox(0, 0.4, 12, 2, 0.2, 0.8, 0, "#333333");
+        
+        spawnDoor(0, 16);
+        advanceGenState(16);
+      }
+      
+      // Cleanup old geometry
+      let oldestGen = genId - 4;
+      worldBoxes = worldBoxes.filter(b => b.genId >= oldestGen);
+      doors = doors.filter(d => d.genId >= oldestGen);
+      
+      if (waypoints.length > 50) {
+        let removed = waypoints.length - 50;
+        waypoints.splice(0, removed);
+        currentWaypoint -= removed;
+        if (currentWaypoint < 0) currentWaypoint = 0;
+      }
+      
+      updateLog(layout);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // AUTONOMOUS NAVIGATION & RENDER LOOP
+    // ═══════════════════════════════════════════════════════════════════
+    function updateAutoNav(dt, time) {
+      const speed = 2.5;
+      if (waypoints.length === 0) return;
+      
+      let wp = waypoints[currentWaypoint];
+      if(!wp) {
+        currentWaypoint = Math.max(0, waypoints.length - 1);
+        wp = waypoints[currentWaypoint];
+        if(!wp) return;
+      }
+      
+      let dx = wp.x - cam.x;
+      let dz = wp.z - cam.z;
+      let dist = Math.sqrt(dx*dx + dz*dz);
+      
+      let canMove = true;
+      
+      // Elevator waiting logic
+      if (wp.type === 'elevator_wait') {
+        if (!wp.waitStarted) {
+          wp.waitStarted = true;
+          waitTimer = 3.0;
+          playSound(100, 3.0, 'sine', 0.1, 200);
+        }
+        if (waitTimer > 0) {
+          waitTimer -= dt;
+          canMove = false;
+          cam.pitch = Math.sin(time / 100) * 0.01;
+        } else {
+          if (wp.door) wp.door.ignoreProximity = false;
+        }
+      }
+      
+      // Waypoint reached
+      if (dist < 1.2 && canMove) {
+        currentWaypoint++;
+        if (currentWaypoint > waypoints.length - 5) {
+          generateSector();
+        }
+        return;
+      }
+      
+      if (canMove) {
+        // Steer towards waypoint
+        let targetYaw = Math.atan2(dx, dz);
+        let diff = targetYaw - cam.yaw;
+        while(diff > Math.PI) diff -= 2*Math.PI;
+        while(diff < -Math.PI) diff += 2*Math.PI;
+        cam.yaw += diff * dt * 3.0;
+        
+        // Move forward
+        cam.x += Math.sin(cam.yaw) * speed * dt;
+        cam.z += Math.cos(cam.yaw) * speed * dt;
+        
+        // Head bob & Y interpolation
+        cam.pitch = Math.sin(time / 300) * 0.03;
+        let targetY = wp.y || 1.8;
+        cam.y += (targetY - cam.y) * dt * 5.0 + Math.sin(time / 300) * 0.05;
+      }
+      
+      // Door management
+      for (let door of doors) {
+        let dDist = Math.sqrt(Math.pow(door.x - cam.x, 2) + Math.pow(door.z - cam.z, 2));
+        
+        if (!door.ignoreProximity) {
+          if (dDist < 4.0 && door.state === 'closed') {
+            door.state = 'opening';
+            playSound(150, 1.5, 'sawtooth', 0.05, 80);
+          }
+          if (dDist > 6.0 && door.state === 'open') {
+            door.state = 'closing';
+            playSound(80, 1.0, 'sawtooth', 0.04, 40);
+          }
+        }
+        
+        const lftX = -Math.cos(door.yaw), lftZ = Math.sin(door.yaw);
+        const rgtX = Math.cos(door.yaw), rgtZ = -Math.sin(door.yaw);
+        
+        if (door.state === 'opening' && door.offset < 1.5) {
+          let move = dt * 2.0;
+          door.offset += move;
+          if (door.offset > 1.5) {
+            move -= (door.offset - 1.5);
+            door.offset = 1.5;
+            door.state = 'open';
+          }
+          if (door.left) door.left.v.forEach(v => { v[0] += move * lftX; v[2] += move * lftZ; });
+          if (door.right && door.right.v.length > 0) door.right.v.forEach(v => { v[0] += move * rgtX; v[2] += move * rgtZ; });
+        } else if (door.state === 'closing' && door.offset > 0) {
+          let move = dt * 2.0;
+          door.offset -= move;
+          if (door.offset < 0) {
+            move += door.offset; // Correct over-subtraction
+            door.offset = 0;
+            door.state = 'closed';
+          }
+          if (door.left) door.left.v.forEach(v => { v[0] -= move * lftX; v[2] -= move * lftZ; });
+          if (door.right && door.right.v.length > 0) door.right.v.forEach(v => { v[0] -= move * rgtX; v[2] -= move * rgtZ; });
+        }
+      }
+      
+      // Update HUD messages periodically
+      msgTimer += dt;
+      if (msgTimer > 4.0) {
+        msgTimer = 0;
+        updateLog(Math.floor(Math.random() * 12));
+      }
+    }
+
+    function render() {
+      polyIndex = 0;
+      const queue = [];
+      
+      for (const box of worldBoxes) {
+        processBox(queue, box);
+      }
+      
+      queue.sort((a, b) => b.z - a.z);
+      for (const item of queue) {
+        const p = getPoly();
+        p.setAttribute("points", item.pts);
+        p.setAttribute("fill", item.fill);
+        p.setAttribute("stroke", item.stroke);
+      }
+      for (let i = polyIndex; i < polyPool.length; i++) polyPool[i].style.display = 'none';
+    }
+
+    function loop(time) {
+      const dt = Math.min(0.05, (time - lastTime) / 1000); 
+      lastTime = time;
+      if (isRunning) {
+        updateAutoNav(dt, time);
+        render();
+        document.getElementById("coordVal").textContent = `LOC: X_${cam.x.toFixed(1)} Y_${cam.y.toFixed(1)} Z_${cam.z.toFixed(1)}`;
+      }
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+
+    // --- DEMOSCENE NARRATIVE LOG ---
+    const demosceneMsgs = [
+      "INITIALIZING REALITY MATRIX",
+      "GEOMETRY FLUX ACTIVE",
+      "WARNING: SPATIAL ANOMALY",
+      "RECALIBRATING VIEWPORT",
+      "ENTERING SECTOR 0x4A2B",
+      "VOID PRESENCE: 0.02%",
+      "PAINTER'S ALGORITHM NOMINAL",
+      "Z-BUFFER DISABLED BY DESIGN",
+      "AESTHETIC: MINIMALIST NIGHTMARE",
+      "LOADING NEXT CONSTRUCT"
+    ];
+    function updateLog(layout) {
+      const seed = Math.floor(Math.random() * 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+      document.getElementById("logVal").textContent = `SYS 0x${seed}: ${demosceneMsgs[layout % demosceneMsgs.length]}`;
+    }
+
+    // --- CONTROLS ---
+    window.startSim = function() {
+      ensureAudio();
+      document.getElementById("menu").style.display = 'none';
+      isRunning = true;
+      cam.x = 0; cam.y = 1.8; cam.z = 0; cam.yaw = 0;
+      genState = { x: 0, y: 0, z: 0, yaw: 0 };
+      waypoints = []; doors = []; worldBoxes = [];
+      currentWaypoint = 0;
+      waitTimer = 0;
+      msgTimer = 0;
+      generateSector();
+      generateSector();
+    };
+    
+    window.toggleFullScreen = function() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(e => {});
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    };
+    
+    document.getElementById("fsBtn").addEventListener("click", window.toggleFullScreen);
+  ]]></script>
+</svg>
